@@ -186,7 +186,7 @@ export default function CombustivelEyePage() {
           </>}
         </div>
       </motion.div>
-corinthinas
+
       {/* ── Section: Mercado ── */}
       <motion.div variants={item}>
         <SectionLabel icon={<Activity size={13} />} label="Mercado · Tempo real" color="#a78bfa" />
