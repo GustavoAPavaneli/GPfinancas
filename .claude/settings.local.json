@@ -1,0 +1,22 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm run *)",
+      "Bash(npm install *)",
+      "WebSearch",
+      "WebFetch(domain:dados.gov.br)",
+      "WebFetch(domain:www.anp.gov.br)",
+      "WebFetch(domain:www.gov.br)",
+      "WebFetch(domain:github.com)",
+      "WebFetch(domain:basedosdados.org)",
+      "WebFetch(domain:combustivelapi.com.br)",
+      "WebFetch(domain:medium.com)",
+      "WebFetch(domain:revendedoresapi.anp.gov.br)",
+      "WebFetch(domain:dpp-api.anp.gov.br)",
+      "WebFetch(domain:dadosabertos.anp.gov.br)",
+      "Bash(node *)",
+      "WebFetch(domain:economia.awesomeapi.com.br)",
+      "WebFetch(domain:query1.finance.yahoo.com)"
+    ]
+  }
+}
