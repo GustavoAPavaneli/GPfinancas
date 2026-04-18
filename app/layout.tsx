@@ -51,5 +51,3 @@ export default function RootLayout({
     </html>
   );
 }
-
-esporte clube resenha paulista de fute
