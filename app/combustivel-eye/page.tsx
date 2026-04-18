@@ -337,7 +337,6 @@ function PriceCard({
 }) {
   const isUp   = pct !== null && pct >= 0;
   const pctAbs = pct !== null ? Math.abs(pct) : 0;
-//corinthians
   return (
     <motion.div
       initial={{ opacity: 0, y: 22, scale: 0.97 }}

@@ -40,39 +40,43 @@ async function fetchMarketData(): Promise<MarketData> {
   // ── USD/BRL ──────────────────────────────────────────────────────────────
   let usd: MarketData["usd"] = null;
   if (usdRes.status === "fulfilled" && usdRes.value.ok) {
-    const json = await usdRes.value.json();
-    const d = json["USDBRL"];
-    if (d) {
-      usd = {
-        bid:       parseFloat(d.bid),
-        ask:       parseFloat(d.ask),
-        high:      parseFloat(d.high),
-        low:       parseFloat(d.low),
-        pctChange: parseFloat(d.pctChange),
-        varBid:    parseFloat(d.varBid),
-      };
-    }
+    try {
+      const json = await usdRes.value.json();
+      const d = json["USDBRL"];
+      if (d) {
+        usd = {
+          bid:       parseFloat(d.bid),
+          ask:       parseFloat(d.ask),
+          high:      parseFloat(d.high),
+          low:       parseFloat(d.low),
+          pctChange: parseFloat(d.pctChange),
+          varBid:    parseFloat(d.varBid),
+        };
+      }
+    } catch { /* AwesomeAPI returned non-JSON */ }
   }
 
   // ── Brent Crude ──────────────────────────────────────────────────────────
   let oil: MarketData["oil"] = null;
   if (oilRes.status === "fulfilled" && oilRes.value.ok) {
-    const json  = await oilRes.value.json();
-    const meta  = json?.chart?.result?.[0]?.meta;
-    if (meta) {
-      const price     = meta.regularMarketPrice as number;
-      const prevClose = (meta.chartPreviousClose ?? meta.previousClose) as number;
-      const change    = price - prevClose;
-      oil = {
-        price,
-        prevClose,
-        high:      meta.regularMarketDayHigh as number,
-        low:       meta.regularMarketDayLow as number,
-        pctChange: prevClose > 0 ? (change / prevClose) * 100 : 0,
-        change,
-        symbol:    "Brent",
-      };
-    }
+    try {
+      const json  = await oilRes.value.json();
+      const meta  = json?.chart?.result?.[0]?.meta;
+      if (meta) {
+        const price     = meta.regularMarketPrice as number;
+        const prevClose = (meta.chartPreviousClose ?? meta.previousClose) as number;
+        const change    = price - prevClose;
+        oil = {
+          price,
+          prevClose,
+          high:      meta.regularMarketDayHigh as number,
+          low:       meta.regularMarketDayLow as number,
+          pctChange: prevClose > 0 ? (change / prevClose) * 100 : 0,
+          change,
+          symbol:    "Brent",
+        };
+      }
+    } catch { /* Yahoo Finance returned non-JSON (blocked) */ }
   }
 
   return { usd, oil, fetchedAt: new Date().toISOString() };
