@@ -1,5 +1,4 @@
 import { NextResponse } from "next/server";
-import { unstable_cache } from "next/cache";
 
 export interface MarketData {
   usd: {
@@ -22,29 +21,21 @@ export interface MarketData {
   fetchedAt: string;
 }
 
-async function fetchMarketData(): Promise<MarketData> {
-  const [usdRes, oilRes] = await Promise.allSettled([
-    fetch("https://economia.awesomeapi.com.br/json/last/USD-BRL", {
-      cache: "no-store",
-      headers: { Accept: "application/json" },
-    }),
-    fetch("https://query1.finance.yahoo.com/v8/finance/chart/BZ=F?interval=1d&range=1d", {
-      cache: "no-store",
+async function fetchUSD(): Promise<MarketData["usd"]> {
+  // Primary: AwesomeAPI (real-time bid/ask/high/low)
+  try {
+    const res = await fetch("https://economia.awesomeapi.com.br/json/last/USD-BRL", {
+      next: { revalidate: 300 },
       headers: {
         Accept: "application/json",
-        "User-Agent": "Mozilla/5.0 (compatible; GPFinancas/1.0)",
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
       },
-    }),
-  ]);
-
-  // ── USD/BRL ──────────────────────────────────────────────────────────────
-  let usd: MarketData["usd"] = null;
-  if (usdRes.status === "fulfilled" && usdRes.value.ok) {
-    try {
-      const json = await usdRes.value.json();
+    });
+    if (res.ok) {
+      const json = await res.json();
       const d = json["USDBRL"];
-      if (d) {
-        usd = {
+      if (d && d.bid) {
+        return {
           bid:       parseFloat(d.bid),
           ask:       parseFloat(d.ask),
           high:      parseFloat(d.high),
@@ -53,20 +44,53 @@ async function fetchMarketData(): Promise<MarketData> {
           varBid:    parseFloat(d.varBid),
         };
       }
-    } catch { /* AwesomeAPI returned non-JSON */ }
-  }
+    }
+  } catch { /* blocked or unavailable */ }
 
-  // ── Brent Crude ──────────────────────────────────────────────────────────
-  let oil: MarketData["oil"] = null;
-  if (oilRes.status === "fulfilled" && oilRes.value.ok) {
-    try {
-      const json  = await oilRes.value.json();
+  // Fallback: open.er-api.com (global CDN, no key needed)
+  try {
+    const res = await fetch("https://open.er-api.com/v6/latest/USD", {
+      next: { revalidate: 300 },
+    });
+    if (res.ok) {
+      const json = await res.json();
+      const rate = json?.rates?.BRL as number | undefined;
+      if (rate) {
+        return {
+          bid:       rate,
+          ask:       rate,
+          high:      rate,
+          low:       rate,
+          pctChange: 0,
+          varBid:    0,
+        };
+      }
+    }
+  } catch { /* also unavailable */ }
+
+  return null;
+}
+
+async function fetchOil(): Promise<MarketData["oil"]> {
+  try {
+    const res = await fetch(
+      "https://query1.finance.yahoo.com/v8/finance/chart/BZ=F?interval=1d&range=1d",
+      {
+        next: { revalidate: 300 },
+        headers: {
+          Accept: "application/json",
+          "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
+        },
+      }
+    );
+    if (res.ok) {
+      const json  = await res.json();
       const meta  = json?.chart?.result?.[0]?.meta;
       if (meta) {
         const price     = meta.regularMarketPrice as number;
         const prevClose = (meta.chartPreviousClose ?? meta.previousClose) as number;
         const change    = price - prevClose;
-        oil = {
+        return {
           price,
           prevClose,
           high:      meta.regularMarketDayHigh as number,
@@ -76,21 +100,12 @@ async function fetchMarketData(): Promise<MarketData> {
           symbol:    "Brent",
         };
       }
-    } catch { /* Yahoo Finance returned non-JSON (blocked) */ }
-  }
-
-  return { usd, oil, fetchedAt: new Date().toISOString() };
+    }
+  } catch { /* Yahoo Finance blocked */ }
+  return null;
 }
 
-// 5-minute cache — market data updates frequently
-const getCachedMarket = unstable_cache(fetchMarketData, ["market-prices"], { revalidate: 300 });
-
 export async function GET() {
-  try {
-    const data = await getCachedMarket();
-    return NextResponse.json(data);
-  } catch (err) {
-    console.error("[market-prices] fetch error:", err);
-    return NextResponse.json({ error: "Falha ao buscar dados de mercado." }, { status: 500 });
-  }
+  const [usd, oil] = await Promise.all([fetchUSD(), fetchOil()]);
+  return NextResponse.json({ usd, oil, fetchedAt: new Date().toISOString() });
 }
