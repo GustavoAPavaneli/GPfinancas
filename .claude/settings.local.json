@@ -16,7 +16,13 @@
       "WebFetch(domain:dadosabertos.anp.gov.br)",
       "Bash(node *)",
       "WebFetch(domain:economia.awesomeapi.com.br)",
-      "WebFetch(domain:query1.finance.yahoo.com)"
+      "WebFetch(domain:query1.finance.yahoo.com)",
+      "Bash(npx vercel *)",
+      "Bash(git add *)",
+      "Bash(git commit -m ' *)",
+      "Bash(git push *)",
+      "Bash(curl -s \"https://economia.awesomeapi.com.br/json/last/USD-BRL\")",
+      "Bash(xargs grep *)"
     ]
   }
 }
